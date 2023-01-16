@@ -22,16 +22,23 @@ public class ScheduleController : ControllerBase
     public ActionResult<IEnumerable<ScheduleEvent>> Fetch()
     {
         var dbResults = ReadData();
-
-        var preparedResults = dbResults.Select((t) => {
-            t.Item1.Recurrences.Add(t.Item2);
-            return t.Item1;
-        });
+        var preparedResults = new List<ScheduleEvent>();
+        var query = dbResults.GroupBy(g => g.Item1.Id);
+        foreach (var group in query)
+        {
+            var eventScheduleList = group.First(f => f.Item1.Id == group.Key).Item1;
+            foreach (var cat in group)
+            {
+                eventScheduleList.Recurrences.Add(cat.Item2);
+            }
+            preparedResults.Add(eventScheduleList);
+        }
 
         return Ok(preparedResults);
     }
 
-    private IEnumerable<(ScheduleEvent, ScheduleEventRecurrence)> ReadData() {
+    private IEnumerable<(ScheduleEvent, ScheduleEventRecurrence)> ReadData()
+    {
         var sql = @"
             SELECT e.*, r.*
             FROM Event e
